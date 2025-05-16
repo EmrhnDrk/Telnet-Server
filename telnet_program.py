@@ -23,6 +23,7 @@
 import socket # Network iletisimi icin onemli 
 import threading # Buradaki Olay Coklu Istemciyi Desteklemesi Gelen her bir baglanti icin ayri bir is parcacigi olusturuyor kullanilan fonksiyonlarda bunu belirticem.
 import subprocess #Dosya islemleri icin hizlica arastirip buldugum bir kutuphane , yazdigimiz girdilerin calisabilmesi icin. 
+
 Network_Host = '192.168.1.77'
 port = 23 # On tanimli Port kullandim.
 
@@ -46,6 +47,7 @@ cikis_ekrani = """
 
 
 """
+
 
 
 
@@ -81,7 +83,7 @@ def istemci_baglantisi(bagl,adre):
 
              komut = veri.decode('utf-8', errors='ignore').strip()  # Yazilmasinin sebebi ise stringin duzgun gelmesi yani bir stringin basindaki ve sonundaki bosluklari , tab karakterlini veyahut satir sonlarini siliyor yani adam komut yazarken misal exit yazarken exit/n gibi birsey olmuyor adam direk exit girdisini giriyor ve benim yazdigim seyde exit/n gibi bir ifadede yani asagidaki if yapisinda sadece exit olarak anlasilmasi icin iste anlamissinizdir.Bide errors ignore eklenerek gecersiz karakterleri atliyor komutlar duzgun calisiyor
 
-             if komut.lower() in ['exit', 'quit', 'Ctrl-c']:  # eger adamin yazdigi komut,exit ve quit listesinden herhangi biri ise direk cikiyo 
+             if komut.lower() in ['exit', 'quit']:  # eger adamin yazdigi komut,exit ve quit listesinden herhangi biri ise direk cikiyo 
                  bagl.sendall(cikis_ekrani.encode('utf-8'))
                  bagl.close()
                  break
@@ -112,7 +114,7 @@ def kullanici_dogrulama(bagl):
 		giris1 = bagl.recv(1024).decode('utf-8', errors='ignore').strip()
 		
 		if giris in icerik and giris1 in icerik1:
-		    bagl.sendall((giris + "" + giris1).encode('utf-8'))
+		    bagl.sendall((giris + "\n" + giris1).encode('utf-8'))
 		    return True # Dogru Ciktiyi Dondursun
 		else:
 			bagl.sendall(b"[/] Hatali Giris Tekrar Deneyiniz.\n")
@@ -127,27 +129,33 @@ def dosya_islemleri(komut, bagl): # Dosya islemleriyle alakali fonksiyonu olustu
     izinli_komutlar = ['ls','df','clear','free','whoami','echo','Echo','?','help']
 
     if komut.lower() not in izinli_komutlar:
-        bagl.sendall("\n".encode('utf-8')) # Yanit islevi 
+        bagl.sendall("\n\n".encode('utf-8')) # Yanit islevi 
         return ""
     else:
         try:
             sonuc = subprocess.run(komut, shell=True, capture_output=True, text=True) # subprocess yani bu islevi calistirip yazdigim komutlari terminalde alip calistirip standart ciktilari ve hatali ciktlilarida alip ardindan byte degilde metin olarak aktarabilmesine yarayan fonksiyonu ve parametrelerini dahil ettim.
-            stderr=subprocess.PIPE #Stderr ciktilarinin olmamasi yani yazdigim komutlarin hata ciktisinin ortadan kalkmasi bunuda subprocess.PIPE parametresi ile kontrol ediyoruz
+            stderr=subprocess.DEVNULL #Stderr ciktilarinin olmamasi yani yazdigim komutlarin hata ciktisinin ortadan kalkmasi icin kullanici_girdi degiskenini tanimladik bunu soket olarak yazdigimiz komutlari bu degiskende tutup ardindan bunuda subprocess.DEVNULL parametresi ile komut sirasinda olusabilicek hata mesajlarini bastiriyor yani hatayi gostermiyor
             return sonuc.stdout + sonuc.stderr # subprocessin dondurdugu cikti bide hata ciktisini birlestirip donduruyor yani hem hatasiz hem hatali komutlar icin lazim burasi daha anlatmak gerekirse stdout kismi misal ben ls yazdigim zaman bu komutun ciktisini veriyor. stderr kismi ise bir linux girdisini (komutu) yanlis yazdigim zaman bana ciktisini veriyor
             
         except Exception as dosya_islemleri_hata:
-            return f"Hata {dosya_islemleri_hata}"			
+            return f"Hata {dosya_islemleri_hata}"
+    
+            	    
+
 
 def telnet_secenek(bagl, komut):                
     try:
-        if komut.lower() in ['?','help']:
-            yanit = "\n".join([f"{key}: {value}" for key, value in yardim_secenekler.items()]) # anahtar ve degeler icin hepsini .items() ile yaptik buda bir sozluk icindeki tum anahtar cift verilerini dondurmeye yariyor ve bu sozluk icindeki tum verileri donguyle gezebiliriz.
-            return yanit + "\n"
+        if komut.lower() in ['?', 'help']:
+            yanit = "\n\n".join([f"{key}: {value}" for key, value in yardim_secenekler.items()]) # anahtar ve degeler icin hepsini .items() ile yaptik buda bir sozluk icindeki tum anahtar cift verilerini dondurmeye yariyor ve bu sozluk icindeki tum verileri donguyle gezebiliriz.
+            return yanit + "\n\n"
         else:
             print("\n")
             return ""
+
+   
+
     except Exception as telnet_secenek_hata:
-        return f"Hata {telnet_secenek_hata}" # Hatayi F string halde donduruyor		
+        return f"Hata {telnet_secenek_hata}" # Hatayi F string halde donduruyor	
 		
 			
 
